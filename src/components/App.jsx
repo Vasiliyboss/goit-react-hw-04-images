@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 import { Serchbar } from './Serchbar/Serchbar';
 import { ImageGallery } from './ImageGallery/ImageGallery';
 import { LoadMore } from './LoadMore/LoadMore';
@@ -6,74 +6,63 @@ import hitsApi from '../services/hits-api';
 import { Spinner } from './Spinner/Spinner';
 import { Modal } from './Modal/Modal';
 
-export class App extends React.Component {
-  state = {
-    page: 1,
-    photoHits: [],
-    name: '',
-    loading: false,
-    error: null,
-    showModal: false,
-    modalImage: null,
-    status: 'idle',
-  };
+export const App = () => {
+  const [page, setPage] = useState(1);
+  const [photoHits, setPhotoHits] = useState([]);
+  const [name, setName] = useState('');
+  const [error, setError] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [modalImage, setModalImage] = useState(null);
+  const [status, setStatus] = useState('idle');
 
-  componentDidUpdate(_, prevState) {
-    const { name, page, modalImage } = this.state;
-    if (prevState.page !== page || prevState.name !== name) {
-      this.setState({ status: 'pending' });
-
-      hitsApi
-        .galleryApi(name, page)
-        .then(photoHits => {
-          if (modalImage === 0) {
-            this.setState({ error: `images ${name} not found` });
-          }
-          this.setState(state => ({
-            photoHits: [...state.photoHits, ...photoHits.hits],
-            status: 'resolved',
-          }));
-        })
-        .catch(error => this.setState({ error, status: 'rejected' }));
+  useEffect(() => {
+    if (!name) {
+      return;
     }
-  }
+    setStatus('pending');
 
-  handleSubmit = name => {
-    if (this.state.name !== name) {
-      this.setState({ name, page: 1, photoHits: [] });
-    }
+    hitsApi
+      .galleryApi(name, page)
+      .then(responsePhotoHits =>
+        setPhotoHits(
+          prevPhotoHits => [...prevPhotoHits, ...responsePhotoHits.hits],
+          setStatus('resolved')
+        )
+      )
+      .catch(error => {
+        setError(error);
+        setStatus('rejected');
+      });
+  }, [modalImage, name, page]);
+
+  const handleSubmit = name => {
+    setName(name);
+    setPage(1);
+    setPhotoHits([]);
   };
 
-  togleModal = modalImage => {
-    this.setState(({ showModal }) => ({ showModal: !showModal }));
-    this.setState({ modalImage });
+  const togleModal = modalImage => {
+    setShowModal(showModal => !showModal);
+    setModalImage(modalImage);
   };
 
-  loadMore = () => {
-    this.setState(prevState => ({ page: prevState.page + 1 }));
+  const loadMore = () => {
+    setPage(prevPage => prevPage + 1);
   };
 
-  render() {
-    const { photoHits, error, status, showModal, modalImage } = this.state;
+  return (
+    <div>
+      <Serchbar onSubmit={handleSubmit} />
 
-    return (
-      <div>
-        <Serchbar onSubmit={this.handleSubmit} />
-
-        <ImageGallery items={photoHits} openModal={this.togleModal} />
-        {photoHits.length > 0 && status !== 'pending' && (
-          <LoadMore onLoadClick={this.loadMore}>Load more</LoadMore>
-        )}
-        {status === 'pending' && <Spinner />}
-        {status === 'rejected' && <h1>{error.message}</h1>}
-        {showModal && (
-          <Modal
-            image={photoHits}
-            modalImage={modalImage}
-            onClose={this.togleModal}
-          />
-        )}
-      </div>
-    );
-  }
-}
+      {photoHits && <ImageGallery items={photoHits} openModal={togleModal} />}
+      {photoHits.length > 0 && status !== 'pending' && (
+        <LoadMore onLoadClick={loadMore}>Load more</LoadMore>
+      )}
+      {status === 'pending' && <Spinner />}
+      {status === 'rejected' && <h1>{error.message}</h1>}
+      {showModal && (
+        <Modal image={photoHits} modalImage={modalImage} onClose={togleModal} />
+      )}
+    </div>
+  );
+};
