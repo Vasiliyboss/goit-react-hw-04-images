@@ -31,5 +31,5 @@ export const Modal = ({ onClose, modalImage }) => {
 
 Modal.propTypes = {
   onClose: PropTypes.func.isRequired,
-  modalImage: PropTypes.object.isRequired,
+  modalImage: PropTypes.string.isRequired,
 };

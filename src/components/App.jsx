@@ -35,10 +35,12 @@ export const App = () => {
       });
   }, [modalImage, name, page]);
 
-  const handleSubmit = name => {
-    setName(name);
-    setPage(1);
-    setPhotoHits([]);
+  const handleSubmit = firstName => {
+    if (firstName !== name) {
+      setName(firstName);
+      setPage(1);
+      setPhotoHits([]);
+    }
   };
 
   const togleModal = modalImage => {
